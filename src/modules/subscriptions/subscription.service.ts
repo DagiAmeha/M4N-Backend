@@ -2,7 +2,7 @@ import Subscription from "./subscription.model.js";
 import { SubscriptionPlan } from "./plan.model.js";
 import { SubscriptionStatus } from "./subscription.types.js";
 import slugify from "slugify";
-import { ISubscriptionPlan } from "./plan.types.js";
+import { ISubscriptionPlan, PlanStatus } from "./plan.types.js";
 import { User } from "../users/user.model.js";
 
 const slugifyFn = (slugify as any).default ? (slugify as any).default : slugify;
@@ -30,7 +30,7 @@ export const createPlan = async (planData: Partial<ISubscriptionPlan>) => {
    GET ALL ACTIVE PLANS
 ====================================================== */
 export const getActivePlans = async () => {
-  return SubscriptionPlan.find({ status: "active" }).sort({ price: 1 });
+  return SubscriptionPlan.find({ status: PlanStatus.ACTIVE }).sort({ price: 1 });
 };
 
 /* ======================================================
@@ -90,7 +90,7 @@ export const expireSubscriptionsService = async () => {
 
     // 1. Find active subscriptions that are already expired
     const expiredSubscriptions = await Subscription.find({
-      status: "active",
+      status: SubscriptionStatus.ACTIVE,
       endDate: { $lt: now },
     });
 
@@ -105,7 +105,7 @@ export const expireSubscriptionsService = async () => {
     // 2. Mark subscriptions as expired
     await Subscription.updateMany(
       { _id: { $in: subscriptionIds } },
-      { $set: { status: "expired" } },
+      { $set: { status: SubscriptionStatus.EXPIRED } },
     );
 
     // 3. Remove user access (example logic — adjust to your system)

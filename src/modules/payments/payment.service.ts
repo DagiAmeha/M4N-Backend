@@ -4,6 +4,7 @@ import Purchase from "../purchases/purchase.model.js";
 import Book from "../books/book.model.js";
 import { SubscriptionPlan } from "../subscriptions/plan.model.js";
 import Subscription from "../subscriptions/subscription.model.js";
+import { SubscriptionStatus } from "../subscriptions/subscription.types.js";
 import { User } from "../users/user.model.js";
 
 interface ChapaVerifyResponse {
@@ -199,7 +200,7 @@ export const initializeSubscriptionPayment = async (paymentData: {
     plan: plan._id,
     paymentRef: tx_ref,
     amount: plan.price,
-    status: "pending",
+    status: SubscriptionStatus.PENDING,
   });
 
   return response.data?.data?.checkout_url;
@@ -213,7 +214,7 @@ export const verifySubscriptionPayment = async (tx_ref: string | string[]) => {
     if (!subscription) throw new Error("Subscription not found");
 
     // prevent duplicate processing
-    if (subscription.status === "active") return true;
+    if (subscription.status === SubscriptionStatus.ACTIVE) return true;
 
     const chapaKey =
       process.env.CHAPA_SECRET || process.env.CHAPA_TEST_SECRET_KEY;
@@ -240,7 +241,7 @@ export const verifySubscriptionPayment = async (tx_ref: string | string[]) => {
     if (paymentStatus !== "success") {
       await Subscription.updateOne(
         { paymentRef: tx_ref },
-        { status: "failed" },
+        { status: SubscriptionStatus.FAILED },
       );
       return false;
     }
@@ -253,7 +254,7 @@ export const verifySubscriptionPayment = async (tx_ref: string | string[]) => {
     const existingActive = await Subscription.findOne({
       userId: subscription.userId,
       plan: subscription.plan,
-      status: "active",
+      status: SubscriptionStatus.ACTIVE,
       endDate: { $gt: now },
     });
 
@@ -271,7 +272,7 @@ export const verifySubscriptionPayment = async (tx_ref: string | string[]) => {
       await Subscription.updateOne(
         { paymentRef: tx_ref },
         {
-          status: "active",
+          status: SubscriptionStatus.ACTIVE,
           startDate: now,
           endDate: new Date(now.getTime() + durationMs),
         },
